@@ -4,17 +4,13 @@
 
 **部署目标：GitHub Pages（纯静态站）**
 
-推送到 `main` / `master` 后，GitHub Actions 自动构建并发布。
-
-站点地址（仓库名不同请自行替换）：
-
-`https://<你的用户名>.github.io/arena-final-20260717/`
+站点：https://joshzhao0218.github.io/arena-final/
 
 ## 架构（GitHub Pages 可用）
 
 ```
-arena-final-20260717/
-├── .github/workflows/deploy-pages.yml   # Pages 自动部署
+arena-final/
+├── .github/workflows/deploy-pages.yml   # Pages 自动部署（可选）
 ├── public/                              # 静态资源（含 .nojekyll）
 ├── out/                                 # next build 产物（本地生成，不入库）
 ├── src/
@@ -34,10 +30,9 @@ arena-final-20260717/
 | 项 | 说明 |
 |----|------|
 | `output: 'export'` | 生成纯静态 `out/`，可直接给 Pages |
-| `basePath` | 仓库页自动为 `/<repo>` |
+| `basePath` | 仓库页自动为 `/arena-final` |
 | 动态路由 | `generateStaticParams` 预生成五个市场页 |
 | 无 API | Pages 无 Node；回声/分析师走客户端降级逻辑 |
-| Actions | push 即构建上传 `out/` |
 
 ## 本地运行
 
@@ -51,15 +46,15 @@ npm run preview      # 本地预览 out/
 本地若需模拟 GitHub Pages 的子路径：
 
 ```bash
-GITHUB_PAGES=true GITHUB_REPOSITORY=你的用户名/arena-final-20260717 npm run build
+GITHUB_PAGES=true GITHUB_REPOSITORY=joshzhao0218/arena-final npm run build
 ```
 
 ## 启用 GitHub Pages
 
 当前已部署：
 
-- 仓库：https://github.com/joshzhao0218/arena-final-20260717
-- 站点：https://joshzhao0218.github.io/arena-final-20260717/
+- 仓库：https://github.com/joshzhao0218/arena-final
+- 站点：https://joshzhao0218.github.io/arena-final/
 - 发布方式：`gh-pages` 分支（静态 `out/`）
 
 本地重新发布：
@@ -72,6 +67,7 @@ npm run deploy:pages
 
 ```bash
 gh auth refresh -h github.com -s workflow,repo
+cp deploy/github-pages.workflow.yml .github/workflows/deploy-pages.yml
 git add .github/workflows/deploy-pages.yml
 git commit -m "Enable Actions Pages deploy"
 git push
