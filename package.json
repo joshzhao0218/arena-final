@@ -8,7 +8,8 @@
     "start": "npx --yes serve out",
     "lint": "eslint",
     "export": "GITHUB_PAGES=true next build",
-    "preview": "npx --yes serve out"
+    "preview": "npx --yes serve out",
+    "deploy:pages": "GITHUB_PAGES=true GITHUB_REPOSITORY=joshzhao0218/arena-final-20260717 NEXT_PUBLIC_SITE_URL=https://joshzhao0218.github.io/arena-final-20260717 npm run build && touch out/.nojekyll && npx --yes gh-pages@6 -d out -m \"Deploy static site\" --nojekyll"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.111.0",

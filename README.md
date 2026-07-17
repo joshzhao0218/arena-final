@@ -56,10 +56,28 @@ GITHUB_PAGES=true GITHUB_REPOSITORY=你的用户名/arena-final-20260717 npm run
 
 ## 启用 GitHub Pages
 
-1. 仓库 **Settings → Pages → Source** 选 **GitHub Actions**
-2. 推送本仓库到 GitHub（见下方）
-3. 等待 workflow `Deploy GitHub Pages` 成功
-4. 打开 `https://<user>.github.io/arena-final-20260717/`
+当前已部署：
+
+- 仓库：https://github.com/joshzhao0218/arena-final-20260717
+- 站点：https://joshzhao0218.github.io/arena-final-20260717/
+- 发布方式：`gh-pages` 分支（静态 `out/`）
+
+本地重新发布：
+
+```bash
+npm run deploy:pages
+```
+
+若要用 GitHub Actions 自动部署，需先给 token 加上 `workflow` 权限：
+
+```bash
+gh auth refresh -h github.com -s workflow,repo
+git add .github/workflows/deploy-pages.yml
+git commit -m "Enable Actions Pages deploy"
+git push
+```
+
+然后在 **Settings → Pages → Source** 选 **GitHub Actions**。
 
 ## 页面
 
