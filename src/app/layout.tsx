@@ -18,7 +18,7 @@ const playfair = Playfair_Display({
 
 const siteUrl =
   process.env.NEXT_PUBLIC_SITE_URL ||
-  "https://zhaokvance.github.io/arena-final-20260717";
+  "https://joshzhao0218.github.io/arena-final-20260717";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
