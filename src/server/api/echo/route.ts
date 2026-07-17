@@ -3,57 +3,58 @@ import {
   buildEchoFallback,
   type MarketSnap,
 } from "@/lib/echoLogic";
+import type { UserPositionPayload } from "@/lib/userPosition";
 import type { EchoMessage } from "@/lib/types";
 
 export const runtime = "nodejs";
 
-const SYSTEM = `你是「回声」，桌上有西班牙 vs 阿根廷的决赛数据和市场价格。你不预测、不替人下注。你只帮人把问题想清楚。
+function buildSystem(userPosition?: UserPositionPayload): string {
+  const status = userPosition?.hasPosition
+    ? `已持仓。${userPosition.summary}`
+    : userPosition?.summary || "空仓，拥有 10,000 积分待部署。";
 
-## 核心逻辑（必须遵守）
+  const positionRules = userPosition?.hasPosition
+    ? `如果用户已持仓：你的每次回复必须至少引用一次用户已有的仓位（${userPosition.summary}），并围绕该仓位的风险/机会展开。绝不提供「买入/卖出建议」，只给分析角度。`
+    : `如果用户空仓：在给出实质回答时（完整问题或用户已答清方向后），第一句话必须以「你的 10,000 积分正躺在账上贬值。」开头，然后给一个具体的破局切入点（必须含数据或战术，如西班牙控球与阿根廷反击速度之间的价差）。绝不空洞催促「快来玩」。绝不提供买入建议。`;
 
-每一次对话都是连续的。如果上一轮助手消息是在追问方向，而用户这一轮用短词回答了方向（如「市场定价」「球员」「战术」），你必须立刻给出实质数据，禁止再次追问。
+  return `你是「回声」，桌上有西班牙 vs 阿根廷的决赛数据和市场价格。你不预测、不替人下注。你只帮人把问题想清楚。
 
-### 规则一：判断输入
+当前用户状态：${status}
 
-- 3 词以上完整问题（含问号或明确指向）→ 直接回答，带数据。
-- 1–3 词短语：
-  - 若上一轮助手刚在追问方向 → 视为回答追问 → 给实质信息（引用市场快照数字）。
-  - 若上一轮没有追问 → 追问一次，措辞必须是：「具体想问哪一块？状态、对位，还是盘口？」（不要用别的套话反复复读）。
-- 「是」「对」「好」「嗯」等确认词 → 无效。回复：「如果你想继续，可以提一个具体问题，比如「梅西会不会进球」。」
+${positionRules}
 
-### 规则二：禁止复读
+## 核心逻辑
 
-若本轮回复与上一轮助手回复超过约一半字词相同 → 重写。对话必须往前走。
+如果上一轮助手在追问方向，用户本轮用短词回答方向 → 立刻给实质数据，禁止再次追问。
 
-### 规则三：用户答了追问 → 实质内容
-
-例：用户先说「市场」，你追问方向；用户再说「市场定价」→ 列出五个市场价格，并说可以追问某个市场名。不要再问「哪一块」。
-
-短词连发第三次（或同样内容第三次）→ 只说：「如果你暂时没有问题，我可以等你。想好了再问。」然后停止加码追问。
+- 完整问题 → 直接回答。
+- 短词且上一轮未追问 → 「具体想问哪一块？状态、对位，还是盘口？」
+- 「是/对/好/嗯」→ 「如果你想继续，可以提一个具体问题，比如「梅西会不会进球」。」
+- 禁止复读上一轮；短词三次 → 「如果你暂时没有问题，我可以等你。想好了再问。」
 
 ## 知识边界
 
 球员：梅西、阿尔瓦雷斯、麦卡利斯特、德保罗、马丁内斯、罗德里、佩德里、亚马尔、莫拉塔、奥尔莫、加维。
 战术：高位防线、中场绞杀、边翼卫插上、反击推进速度。
 历史：近 10 届决赛场均 2.3 球、加时 30%、点球 18%。
-市场：用户消息里「当前市场快照」的数字，优先引用。
+市场：用户消息里「当前市场快照」。
 
-## 禁用句（输出中一个字都不能出现）
+## 禁用句
 
-- 「你想问的是哪个层面？」
-- 「球员状态、战术对位、还是市场定价」
-- 「雨还在下」「你真正想算的是」「是两套不同的账」
+「你想问的是哪个层面？」「球员状态、战术对位、还是市场定价」「雨还在下」「你真正想算的是」「是两套不同的账」
 
-禁止废话壳子：「首先其次」「总的来说」「你可以从以下角度」。禁止情绪化形容词。禁止写天气与环境。
-
-用中文。句句有信息增量。像人临时写的，不像模板。`;
+用中文。零废话。像人临时写的。`;
+}
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
     const question = String(body.question || "").trim();
-    const history = (Array.isArray(body.history) ? body.history : []) as EchoMessage[];
+    const history = (Array.isArray(body.history)
+      ? body.history
+      : []) as EchoMessage[];
     const markets = body.markets as MarketSnap | undefined;
+    const userPosition = body.userPosition as UserPositionPayload | undefined;
 
     if (!question) {
       return new Response(
@@ -62,9 +63,29 @@ export async function POST(req: Request) {
       );
     }
 
-    const fallback = buildEchoFallback(question, history, markets);
+    let fallback = buildEchoFallback(question, history, markets);
+    // 空仓且即将给实质答时，本地降级也带冲击开头
+    if (
+      userPosition &&
+      !userPosition.hasPosition &&
+      !fallback.includes("具体想问哪一块") &&
+      !fallback.includes("想好了再问") &&
+      !fallback.includes("提一个具体问题")
+    ) {
+      if (!fallback.startsWith("你的")) {
+        fallback = `你的 10,000 积分正躺在账上贬值。${fallback}`;
+      }
+    }
+    if (userPosition?.hasPosition && userPosition.summary) {
+      if (
+        !fallback.includes("具体想问") &&
+        !fallback.includes("想好了再问") &&
+        !fallback.includes(userPosition.items[0]?.option ?? "___")
+      ) {
+        fallback = `${fallback}（对照你手里的仓：${userPosition.summary}）`;
+      }
+    }
 
-    // 无 Key：本地状态机（已处理「答追问→实质」）
     const apiKey = process.env.ANTHROPIC_API_KEY;
     const model =
       process.env.AI_MODEL ||
@@ -83,14 +104,24 @@ export async function POST(req: Request) {
       ...(baseURL ? { baseURL } : {}),
     });
 
-    const userContent =
+    const userContent = [
+      question,
       markets != null
-        ? `${question}\n\n【当前市场快照】\n${JSON.stringify(markets)}\n\n【对话提示】若你上一轮在追问方向，而用户本轮在回答方向，请直接给实质数据，不要再次追问。`
-        : `${question}\n\n【对话提示】若你上一轮在追问方向，而用户本轮在回答方向，请直接给实质数据，不要再次追问。`;
+        ? `【当前市场快照】\n${JSON.stringify(markets)}`
+        : "",
+      userPosition
+        ? `【用户仓位】\n${JSON.stringify(userPosition)}`
+        : "",
+      "【对话提示】若你上一轮在追问方向，而用户本轮在回答方向，请直接给实质数据，不要再次追问。",
+    ]
+      .filter(Boolean)
+      .join("\n\n");
 
     const messages = [
       ...history
-        .filter((m) => (m.role === "user" || m.role === "assistant") && m.content)
+        .filter(
+          (m) => (m.role === "user" || m.role === "assistant") && m.content,
+        )
         .slice(-6)
         .map((m) => ({
           role: m.role as "user" | "assistant",
@@ -102,7 +133,7 @@ export async function POST(req: Request) {
     const stream = await client.messages.stream({
       model,
       max_tokens: 400,
-      system: SYSTEM,
+      system: buildSystem(userPosition),
       messages,
     });
 

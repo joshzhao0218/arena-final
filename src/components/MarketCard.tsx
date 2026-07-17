@@ -1,12 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { decimalOdds, formatPct, priceYes, regularPrices } from "@/lib/amm";
+import { priceYes, regularPrices } from "@/lib/amm";
 import { ruleTag, type MarketDef } from "@/lib/markets";
 import { useArena } from "@/lib/store";
+import { useMarketTicker } from "@/lib/useMarketTicker";
 import type { BinaryPool, RegularPool } from "@/lib/types";
 import { Button } from "./ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
+import { PricePulse } from "./PricePulse";
 import { Sparkline } from "./Sparkline";
 
 function fallbackHistory(center: number): number[] {
@@ -23,9 +25,9 @@ export function MarketCard({
   featured?: boolean;
 }) {
   const { pools, ready } = useArena();
+  const { getRow } = useMarketTicker();
 
   let history: number[] = [];
-  let rows: { label: string; price: number }[] = [];
 
   if (ready) {
     if (market.kind === "regular") {
@@ -33,35 +35,18 @@ export function MarketCard({
       const p = regularPrices(pool);
       history =
         pool.history?.length >= 2 ? pool.history : fallbackHistory(p.spain);
-      rows = [
-        { label: market.options[0], price: p.spain },
-        { label: market.options[1], price: p.draw },
-        { label: market.options[2], price: p.argentina },
-      ];
     } else {
       const pool = pools[market.id] as BinaryPool;
       const yes = priceYes(pool.yesShares, pool.noShares);
       history =
         pool.history?.length >= 2 ? pool.history : fallbackHistory(yes);
-      rows = [
-        { label: market.options[0], price: yes },
-        { label: market.options[1], price: 1 - yes },
-      ];
     }
   } else {
-    rows = market.options.map((label, i) => ({
-      label,
-      price:
-        market.kind === "regular"
-          ? ([0.36, 0.28, 0.36][i] ?? 0.33)
-          : i === 0
-            ? 0.5
-            : 0.5,
-    }));
     history = fallbackHistory(0.5);
   }
 
   const tag = ruleTag(market);
+  const optionIndexes = market.options.map((_, i) => i);
 
   return (
     <Card
@@ -95,32 +80,38 @@ export function MarketCard({
       </CardHeader>
       <CardContent
         className={
-          featured && rows.length === 3
+          featured && optionIndexes.length === 3
             ? "grid gap-3 sm:grid-cols-3"
             : "space-y-3"
         }
       >
-        {rows.map((row) => (
-          <div
-            key={`${market.id}-${row.label}`}
-            className="flex items-center justify-between gap-3 rounded-md border border-border-subtle/80 px-3 py-2"
-          >
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm text-text-primary">{row.label}</p>
-              <p className="score-num mt-0.5 text-xl text-arena-gold">
-                赔率 {decimalOdds(row.price).toFixed(2)}
-                <span className="ml-2 text-sm font-semibold text-text-primary/80">
-                  ｜ 隐含概率 {formatPct(row.price)}
-                </span>
-              </p>
+        {optionIndexes.map((i) => {
+          const row = getRow(market.id, i);
+          const label = market.options[i];
+          const price = row?.price ?? 0.5;
+          const direction = row?.direction ?? "flat";
+          const delta = row?.delta ?? 0;
+          return (
+            <div
+              key={`${market.id}-${label}`}
+              className="flex items-center justify-between gap-3 rounded-md border border-border-subtle/80 px-3 py-2"
+            >
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm text-text-primary">{label}</p>
+                <PricePulse
+                  price={price}
+                  direction={direction}
+                  delta={delta}
+                />
+              </div>
+              <Link href={`/market/${market.id}`}>
+                <Button variant="outline" size="sm" type="button">
+                  交易
+                </Button>
+              </Link>
             </div>
-            <Link href={`/market/${market.id}`}>
-              <Button variant="outline" size="sm" type="button">
-                交易
-              </Button>
-            </Link>
-          </div>
-        ))}
+          );
+        })}
       </CardContent>
     </Card>
   );

@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter, Playfair_Display } from "next/font/google";
 import { Nav } from "@/components/Nav";
 import { Toast } from "@/components/Toast";
+import { MarketTickerProvider } from "@/lib/useMarketTicker";
 import { ArenaProvider } from "@/lib/store";
 import "./globals.css";
 
@@ -73,17 +74,19 @@ export default function RootLayout({
     >
       <body className="flex min-h-full flex-col font-sans">
         <ArenaProvider>
-          <Nav />
-          <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8">
-            {children}
-          </main>
-          <footer className="border-t border-border-subtle py-6 text-center text-xs text-text-muted">
-            <p>竞技场 · The Arena — Spain vs Argentina · 2026-07-19</p>
-            <p className="mt-1 opacity-70">
-              预测市场演示 · 非真实博彩 · 不含真实资金结算
-            </p>
-          </footer>
-          <Toast />
+          <MarketTickerProvider>
+            <Nav />
+            <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8">
+              {children}
+            </main>
+            <footer className="border-t border-border-subtle py-6 text-center text-xs text-text-muted">
+              <p>竞技场 · The Arena — Spain vs Argentina · 2026-07-19</p>
+              <p className="mt-1 opacity-70">
+                预测市场演示 · 非真实博彩 · 不含真实资金结算
+              </p>
+            </footer>
+            <Toast />
+          </MarketTickerProvider>
         </ArenaProvider>
       </body>
     </html>

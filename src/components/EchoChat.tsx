@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { formatPct, priceYes, regularPrices } from "@/lib/amm";
 import { buildEchoFallback, type MarketSnap } from "@/lib/echoLogic";
 import { useArena } from "@/lib/store";
+import { buildUserPosition } from "@/lib/userPosition";
 import type { EchoMessage } from "@/lib/types";
 import { Button } from "./ui/button";
 import { Card, CardContent } from "./ui/card";
@@ -28,7 +29,7 @@ function saveHistory(msgs: EchoMessage[]) {
 }
 
 export function EchoChat() {
-  const { pools, ready } = useArena();
+  const { pools, ready, positions, balance } = useArena();
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<EchoMessage[]>([]);
@@ -75,11 +76,20 @@ export function EchoChat() {
     setMessages([...hist, { role: "assistant", content: "" }]);
     setStreaming(true);
 
-    // GitHub Pages 为纯静态站：回声走本地状态机（src/lib/echoLogic）
+    // GitHub Pages 静态站：回声走本地状态机（含 v2 空仓提示）
     const markets = marketSnapshot();
-    const reply = buildEchoFallback(q, messages, markets);
+    const userPosition = buildUserPosition(positions, balance);
+    let reply = buildEchoFallback(q, messages, markets);
+    if (
+      !userPosition.hasPosition &&
+      !reply.includes("具体想问哪一块") &&
+      !reply.includes("想好了再问") &&
+      !reply.includes("提一个具体问题") &&
+      !reply.startsWith("你的")
+    ) {
+      reply = `你的 10,000 积分正躺在账上贬值。${reply}`;
+    }
 
-    // 轻微延迟，保留对话节奏感
     await new Promise((r) => setTimeout(r, 180));
 
     const finalMsgs: EchoMessage[] = [

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { formatPct, priceYes, regularPrices } from "@/lib/amm";
+import { formatPct, priceYes } from "@/lib/amm";
 import { useArena } from "@/lib/store";
 import type { AnalystResponse } from "@/lib/types";
 import { Button } from "./ui/button";
@@ -27,7 +27,6 @@ export function AnalystPanel() {
   const run = async () => {
     if (!ready) return;
     setLoading(true);
-    // GitHub Pages 静态站：分析师走本地盘口文案
     await new Promise((r) => setTimeout(r, 220));
     setData(localFallback(pools));
     setLoading(false);

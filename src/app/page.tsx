@@ -3,6 +3,7 @@
 import { AnalystPanel } from "@/components/AnalystPanel";
 import { Countdown } from "@/components/Countdown";
 import { EchoChat } from "@/components/EchoChat";
+import { LiquidityPool } from "@/components/LiquidityPool";
 import { MarketCard } from "@/components/MarketCard";
 import { MatchBanner } from "@/components/MatchBanner";
 import { MARKETS } from "@/lib/markets";
@@ -19,10 +20,12 @@ export default function HomePage() {
           开球 2026-07-19 · 五道题 · 一座角斗场
         </p>
         <Countdown />
+        <div className="mt-4">
+          <LiquidityPool />
+        </div>
       </section>
 
       <section className="animate-fade-up grid gap-4 lg:grid-cols-2">
-        {/* 常规时间三选项：通栏置顶，避免被挤出视野 */}
         <MarketCard market={regular} featured />
         {others.map((m) => (
           <MarketCard key={m.id} market={m} />
