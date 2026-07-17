@@ -3,8 +3,8 @@ self.__BUILD_MANIFEST = {
     "afterFiles": [],
     "beforeFiles": [
       {
-        "source": "/arena-final-20260717//_next/:path+",
-        "destination": "/arena-final-20260717/_next/:path+"
+        "source": "/arena-final//_next/:path+",
+        "destination": "/arena-final/_next/:path+"
       }
     ],
     "fallback": []
